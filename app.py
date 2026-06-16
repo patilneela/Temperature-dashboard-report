@@ -38,3 +38,102 @@ with col2:
 # TITLE
 # =========================
 st.title("Temperature Analytics Report")
+
+# =========================
+# UPLOAD THE TEMPERATURE SCADA FILE
+# =========================
+st.sidebar.subheader("Upload SCADA File")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload SCADA CSV",
+    type=["csv"]
+)
+
+if uploaded_file is None:
+    st.warning("Please upload SCADA file")
+    st.stop()
+
+site = st.sidebar.selectbox(
+    "Select Site",
+    list(SITE_CAPACITY.keys())
+)
+
+mode = st.sidebar.radio(
+    "Select View",
+    ["Temperature graph", "", "Show All Turbines"]
+)
+
+# =========================
+# LOAD SCADA
+# =========================
+@st.cache_data(show_spinner=True)
+def load_scada(file):
+
+    chunksize = 200000
+
+    chunks = pd.read_csv(
+        file,
+        chunksize=chunksize,
+        low_memory=False,
+        engine="c"
+    )
+
+    df = pd.concat(chunks, ignore_index=True)
+
+    df.columns = df.columns.str.strip()
+
+    wind_col = [
+        c for c in df.columns
+        if "wind" in c.lower()
+    ][0]
+
+    power_col = [
+        c for c in df.columns
+        if "power" in c.lower()
+        or "active" in c.lower()
+    ][0]
+
+    time_col = [
+        c for c in df.columns
+        if "time" in c.lower()
+    ][0]
+
+    pitch_col = [
+        c for c in df.columns 
+        if "pitch" in c.lower()
+    ][0]
+
+    df[time_col] = pd.to_datetime(
+        df[time_col],
+        errors="coerce"
+    )
+
+    df[wind_col] = pd.to_numeric(
+        df[wind_col],
+        errors="coerce"
+    )
+
+    df[power_col] = pd.to_numeric(
+        df[power_col],
+        errors="coerce"
+    )
+
+    df[pitch_col] = pd.to_numeric(
+        df[pitch_col],
+        errors = "coerce"
+    )
+
+    df = df.dropna(
+        subset=[
+            wind_col,
+            power_col,
+            time_col,
+            pitch_col
+        ]
+    )
+
+    df["Name"] = df["Name"].astype(str).str.strip()
+
+    return df, wind_col, power_col, time_col, pitch_col
+
+with st.spinner("Loading SCADA file..."):
+    df, wind_col, power_col, time_col, pitch_col = load_scada(uploaded_file)
