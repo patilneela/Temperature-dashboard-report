@@ -7,7 +7,7 @@ import plotly.express as px
 # CONFIG
 # -----------------------------
 st.set_page_config(page_title="EE4 Dashboard", layout="wide")
-st.title("EE4 Dashboard - Volume + Efficiency (PPT Logic)")
+st.title("EE4 Dashboard - Volume + Efficiency")
 
 # -----------------------------
 # Helpers
